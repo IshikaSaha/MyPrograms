@@ -1,0 +1,56 @@
+# -*- coding: utf-8 -*-
+"""
+Spyder Editor
+
+This is a temporary script file.
+"""
+
+%tensorflow_version 2.0.0
+import tensorflow as tf
+from tensorflow.keras import Sequential,Model
+from tensorflow.keras.layers import Dense,Dropout,Flatten,BatchNormalization
+from tensorflow.keras.applications.vgg16 import VGG16,preprocess_input
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+img_width=50
+img_height=50
+batch_size=500
+
+datagen = ImageDataGenerator(rescale=1./255)
+train_generator = datagen.flow_from_directory(directory=train_data_dir,
+                                              target_size = (img_width, img_height),
+                                              classes=['cat','dog'],
+                                              class_mode = 'binary',
+                                              batch_size=batch_size)
+
+validation_generator = datagen.flow_from_directory(directory=validation_data_dir,
+                                              target_size = (img_width, img_height),
+                                              classes=['cat','dog'],
+                                              class_mode = 'binary',
+                                              batch_size=batch_size)
+
+vgg_arch=VGG16(input_shape=(img_width,img_height,3),weights="imagenet",include_top=False)
+
+for layers in vgg_arch.layers:
+  layers.trainable=False
+  
+model=Sequential()
+model.add(vgg_arch)
+model.add(Flatten())
+model.add(Dense(128,activation='relu',))
+model.add(Dropout(0.5))
+model.add(BatchNormalization())
+model.add(Dense(1,activation="sigmoid"))
+
+model.summary()
+
+model.compile(optimizer="adam",loss="binary_crossentropy",metrics=['accuracy'])
+
+history=model.fit_generator(generator=train_generator, steps_per_epoch=len(train_generator), epochs = 10, 
+                              validation_data=validation_generator, validation_steps=len(validation_generator)
+                              , verbose = 1)
+
